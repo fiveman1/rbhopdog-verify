@@ -157,7 +157,7 @@ def remove_discord_user(discord_id : int):
     else:
         return create_error_response(500, "An unexpected error occurred.")
 
-@app.route("/api/v1/users/<int:discord_id>", methods=["GET", "POST", "DELETE"])
+@app.route("/v1/users/<int:discord_id>", methods=["GET", "POST", "DELETE"])
 @limiter.limit("3000/day;300/hour", exempt_when=lambda : request.method != "GET")
 def discord_user(discord_id : int):
     if request.method == "GET":
@@ -168,7 +168,7 @@ def discord_user(discord_id : int):
     elif request.method == "DELETE":
         return remove_discord_user(discord_id)
 
-@app.route("/api/v1/keys/<int:discord_id>", methods=["GET", "DELETE"])
+@app.route("/v1/keys/<int:discord_id>", methods=["GET", "DELETE"])
 def manage_api_keys(discord_id : int):
     api_key = request.headers.get("api_key")
     if api_key != OWNER_KEY:
