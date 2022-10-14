@@ -49,23 +49,23 @@ class AccountManager:
         with open("files/words.txt") as file:
             self.words = file.read().split(",")
 
-    async def get_request(self, url : str, callback : Callable[[aiohttp.ClientResponse], Awaitable[Any]]) -> Any:
+    async def get_request(self, url : str, name : str, callback : Callable[[aiohttp.ClientResponse], Awaitable[Any]]) -> Any:
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
                 async with session.get(url) as res:
                     if res.status == 404:
                         raise NotFoundError
                     elif res.status < 200 or res.status >= 300:
-                        raise APIError
+                        raise APIError(name)
                     else:
                         return await callback(res)
         except asyncio.TimeoutError:
-            raise TimeoutError
+            raise TimeoutError(name)
 
     async def get_user_from_roblox(self, user_id : int) -> User:
         async def callback(res : aiohttp.ClientResponse):
             return User.from_dict(await res.json())
-        return await self.get_request(f"https://users.roblox.com/v1/users/{user_id}", callback)
+        return await self.get_request(f"https://users.roblox.com/v1/users/{user_id}", "Roblox Users", callback)
         
     def generate_random_phrase(self) -> str:
         return " ".join(random.sample(self.words, 20))

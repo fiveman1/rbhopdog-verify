@@ -3,14 +3,17 @@
 import asyncio
 from enum import IntEnum
 from flask import Flask, jsonify, request, Response
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import functools
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from modules.exceptions import NotFoundError
+from modules.exceptions import APIError, NotFoundError, TimeoutError
 from modules.manager import AccountManager, User
 
 app = Flask(__name__)
+limiter = Limiter(app, get_remote_address)
 
 with open("files/config.json") as file:
     config = json.load(file)
@@ -36,12 +39,14 @@ def create_ok_response(result : Dict[str, Any] = {}) -> Response:
         }
     )
 
-def create_error_response(code : int, messages : List[str], error_code = ErrorCode.DEFAULT, result : Dict[str, Any] = {}) -> Response:
+def create_error_response(code : int, message : Union[str, List[str]], error_code = ErrorCode.DEFAULT, result : Dict[str, Any] = {}) -> Response:
+    if type(message) == str:
+        message = [message]
     return jsonify(
         {
             "status": "error",
             "code": code,
-            "messages": messages,
+            "messages": message,
             "result": result,
             "errorCode": error_code.value
         }
@@ -53,9 +58,9 @@ def require_api_key():
         async def wrapped(*args, **kwargs):
             api_key = request.headers.get("api_key")
             if not api_key:
-                return create_error_response(403, ["An API key is required for this resource. It should be included in the headers as 'api_key'."])
+                return create_error_response(403, "An API key is required for this resource. It should be included in the headers as 'api_key'.")
             elif not await manager.validate_api_key(api_key):
-                return create_error_response(403, ["The provided API key is not valid for accessing this resource."])
+                return create_error_response(403, "The provided API key is not valid for accessing this resource.")
             else:
                 return await func(*args, **kwargs)
         return wrapped
@@ -67,6 +72,18 @@ def validate_int(num) -> Optional[int]:
     except ValueError:
         return None
 
+@app.errorhandler(429)
+def rate_limit_handler(_):
+    return create_error_response(429, "You have exceeded the rate limit.")
+
+@app.errorhandler(APIError)
+def on_api_error(error : APIError):
+    return create_error_response(500, f"An unexpected error occurred attempting to use the {error.api_name} API")
+
+@app.errorhandler(TimeoutError)
+def on_timeout_error(error : TimeoutError):
+    return create_error_response(500, f"An timeout occurred attempting to use the {error.api_name} API")
+
 async def try_verify_discord_user(discord_id : int):
     if await manager.get_roblox_from_discord(discord_id) is not None:
         return create_error_response(400, ["User is already verified."], ErrorCode.ALREADY_VERIFIED)
@@ -77,7 +94,7 @@ async def try_verify_discord_user(discord_id : int):
             if await manager.add_discord_to_roblox(discord_id, user.id):
                 return create_ok_response( { "robloxId": user.id, "robloxUsername": user.username } )
             else:
-                return create_error_response(500, ["An unexpected error occurred."])
+                return create_error_response(500, "An unexpected error occurred.")
         else:
             result = { 
                 "phrase": phrase.phrase,
@@ -86,31 +103,32 @@ async def try_verify_discord_user(discord_id : int):
                 "robloxId": user.id,
                 "robloxUsername": user.username
             }
-            return create_error_response(400, ["User could not be verified. The verification phrase was not found in their About section."], ErrorCode.PHRASE_NOT_FOUND, result)
+            return create_error_response(400, "User could not be verified. The verification phrase was not found in their About section.", ErrorCode.PHRASE_NOT_FOUND, result)
     else:
-        return create_error_response(400, ["The verification process is not active for this user. Either they did not start it, or their phrase expired."], ErrorCode.VERIFICATION_NOT_ACTIVE)
+        return create_error_response(400, "The verification process is not active for this user. Either they did not start it, or their phrase expired.", ErrorCode.VERIFICATION_NOT_ACTIVE)
 
 async def begin_verify_discord_user(discord_id : int, roblox_id : int):
     roblox_id = validate_int(roblox_id)
     if not roblox_id or roblox_id < 1:
-        return create_error_response(400, ["The provided robloxId is invalid."])
+        return create_error_response(400, "The provided robloxId is invalid.")
 
     if await manager.get_roblox_from_discord(discord_id) is not None:
-        return create_error_response(400, ["User is already verified."], ErrorCode.ALREADY_VERIFIED)
+        return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED)
     
     try:
         user = await manager.get_user_from_roblox(roblox_id)
     except NotFoundError:
-        return create_error_response(404, ["User not found."])
+        return create_error_response(404, "User not found.")
     phrase = manager.create_user_phrase(discord_id, user)
     return create_ok_response( { "phrase": phrase.phrase, "expiresIn": int(phrase.time_to_expire()) } )
 
+@limiter.limit("3000/day;300/hour")
 async def get_discord_user(discord_id : int):
     roblox_id = await manager.get_roblox_from_discord(discord_id)
     if roblox_id:
         return create_ok_response( { "robloxId": roblox_id } )
     else:
-        return create_error_response(404, ["User not found."])
+        return create_error_response(404, "User not found.")
 
 @require_api_key()
 async def verify_discord_user(discord_id : int, roblox_id : int):
@@ -123,7 +141,7 @@ async def verify_discord_user(discord_id : int, roblox_id : int):
 async def remove_discord_user(discord_id : int):
     roblox_id = await manager.get_roblox_from_discord(discord_id)
     if not roblox_id:
-        return create_error_response(404, ["User not found."])
+        return create_error_response(404, "User not found.")
     
     tasks = [manager.get_user_from_roblox(roblox_id), manager.remove_discord_to_roblox(discord_id)]
     results = await asyncio.gather(*tasks)
@@ -132,7 +150,7 @@ async def remove_discord_user(discord_id : int):
     if success:
         return create_ok_response( { "robloxId": user.id, "robloxUsername": user.username } )
     else:
-        return create_error_response(500, ["An unexpected error occurred."])
+        return create_error_response(500, "An unexpected error occurred.")
 
 @app.route("/api/v1/users/<int:discord_id>", methods=["GET", "POST", "DELETE"])
 async def discord_user(discord_id : int):
@@ -148,17 +166,17 @@ async def discord_user(discord_id : int):
 async def manage_api_keys(discord_id : int):
     api_key = request.headers.get("api_key")
     if api_key != OWNER_KEY:
-        return create_error_response(403, ["The provided API key is not valid for accessing this resource."])
+        return create_error_response(403, "The provided API key is not valid for accessing this resource.")
     
     if request.method == "GET":
         new_key = await manager.generate_and_add_api_key(discord_id)
         if new_key:
             return create_ok_response( { "apiKey": new_key } )
         else:
-            return create_error_response(500, ["An unexpected error occurred."])
+            return create_error_response(500, "An unexpected error occurred.")
     elif request.method == "DELETE":
         keys = await manager.remove_api_key_from_discord(discord_id)
         if keys:
             return create_ok_response()
         else:
-            return create_error_response(404, ["No keys found to delete."])
+            return create_error_response(404, "No keys found to delete.")
