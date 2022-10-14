@@ -1,63 +1,67 @@
 # database.py
 
 # Run this file to setup the database for the first time
-
-import aiomysql
-import asyncio
+import mysql.connector as mysql
 import json
 
-async def create_database(loop, user, password):
+def create_database(user, password):
     query = "create database discord_to_roblox"
-    
-    conn : aiomysql.Connection = await aiomysql.connect(
-        loop=loop, host="127.0.0.1", port=3306, user=user, 
-        password=password, autocommit=True
-    )
 
-    cur : aiomysql.Cursor = await conn.cursor()
-    await cur.execute(query)
-    await cur.close()
-    conn.close()
+    with mysql.connect(
+        host="127.0.0.1",
+        user=user,
+        password=password,
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute(query)
 
-async def create_tables(loop, user, password):
-    conn : aiomysql.Connection = await aiomysql.connect(
-        loop=loop, host="127.0.0.1", port=3306, user=user, 
-        password=password, db="discord_to_roblox", autocommit=True
-    )
+def create_tables(user, password):
+    create_lookup = """
+        create table discord_lookup (
+            discord_id bigint unsigned not null,
+            roblox_id int unsigned not null,
+            primary key (discord_id)
+        )
+        """
 
-    cur : aiomysql.Cursor = await conn.cursor()
+    create_keys = """
+        create table api_keys (
+            api_key varchar(64) not null,
+            discord_id bigint unsigned not null,
+            primary key (api_key)
+        )
+        """
 
-    query = """
-            create table discord_lookup (
-                discord_id bigint unsigned not null,
-                roblox_id int unsigned not null,
-                primary key (discord_id)
-            )
-            """
-    await cur.execute(query)
+    create_phrases = """
+        create table active_phrases (
+            discord_id bigint unsigned not null,
+            roblox_id int not null,
+            phrase varchar(256) not null,
+            created timestamp default current_timestamp on update current_timestamp not null,
+            primary key (discord_id)
+        )
+    """
 
-    query = """
-            create table api_keys (
-                api_key varchar(64) not null,
-                discord_id bigint unsigned not null,
-                primary key (api_key)
-            )
-            """
-    await cur.execute(query)
+    with mysql.connect(
+        host="127.0.0.1",
+        user=user,
+        password=password,
+        database="discord_to_roblox"
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute(create_lookup)
+            cur.execute(create_keys)
+            cur.execute(create_phrases)
 
-    await cur.close()
-    conn.close()
-
-async def main(loop):
+def main():
 
     with open("files/config.json") as file:
         config = json.load(file)
     SQL_USER = config["SQL_USER"]
     SQL_PASS = config["SQL_PASS"]
 
-    await create_database(loop, SQL_USER, SQL_PASS)
-    await create_tables(loop, SQL_USER, SQL_PASS)
+    create_database(SQL_USER, SQL_PASS)
+    create_tables(SQL_USER, SQL_PASS)
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(loop))
+    main()
