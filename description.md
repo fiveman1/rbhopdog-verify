@@ -19,6 +19,8 @@ status | Either "ok" or "error"
 To retrieve users from the API via GET /v1/users/{discordId}, no API key is required.
 The other endpoints require an API key.
 
+To include one, put it in the headers as `api-key`
+
 ### Error Codes
 
 `errorCode` is included in every response. It is an integer corresponding to an enum:

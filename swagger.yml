@@ -52,7 +52,7 @@ paths:
         '500':
           description: Internal Server Error
       security:
-        - api_key: []
+        - api-key: []
       description: |-
         Begin the verification process for a user. Creates a unique phrase that users put into their About section on Roblox. POST
         /v1/verify/users/{discordId} can be used to verify that they have the phrase. Can give error code 2.
@@ -78,7 +78,7 @@ paths:
           description: Internal Server Error
       operationId: get-v1-verify-users-discordId
       security:
-        - api_key: []
+        - api-key: []
       description: |-
         Try to verify a user. The user must have had verification started via GET /v1/verify/users/{discordId}. This will check if their description contains the phrase needed for verification, and register them if so.
         Can give error codes 2-4.
@@ -93,14 +93,14 @@ paths:
         '500':
           description: Internal Server Error
       security:
-        - api_key: []
+        - api-key: []
       description: ''
 components:
   schemas: {}
   securitySchemes:
-    api_key:
-      name: api_key
-      type: api_key
+    api-key:
+      name: api-key
+      type: api-key
       in: header
       description: 'All endpoints other than GET /v1/users/{discordId} require an API key.'
   responses:
