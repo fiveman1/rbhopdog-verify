@@ -56,6 +56,14 @@ paths:
       description: |-
         Begin the verification process for a user. Creates a unique phrase that users put into their About section on Roblox. POST
         /v1/verify/users/{discordId} can be used to verify that they have the phrase. Can give error code 2.
+      parameters:
+        - schema:
+            type: integer
+            format: int32
+          in: query
+          name: robloxId
+          description: The roblox ID that the user wants to authenticate
+          required: true
     post:
       summary: Try To Verify A User
       tags: []

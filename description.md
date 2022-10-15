@@ -24,10 +24,10 @@ The other endpoints require an API key.
 `errorCode` is included in every response. It is an integer corresponding to an enum:
 
 
-Value | Title | Description
-------|--------|------------
- 0 | None | No error occurred.
- 1 | Default | An error occurred. This is a catch all.
- 2 | Already Verified | Tried to verify a user that was already verified.
- 3 | Phrase Not Found | Could not verify a user because their verification phrase was missing.
- 4 | Verification Inactive | Could not verify a user because they do not have verification active.
+Value | Title | Description | result
+------|--------|------------|---------------
+ 0 | None | No error occurred. | Refer to endpoint documentation
+ 1 | Default | An error occurred. This is a catch all. | empty
+ 2 | Already Verified | Tried to verify a user that was already verified. | `robloxId`
+ 3 | Phrase Not Found | Could not verify a user because their verification phrase was missing. | `phrase`, `expiresIn`, `robloxDescription`, `robloxId`, `robloxUsername`
+ 4 | Verification Inactive | Could not verify a user because they do not have verification active. | empty

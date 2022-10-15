@@ -75,7 +75,7 @@ def require_api_key():
 def validate_int(num) -> Optional[int]:
     try:
         return int(num)
-    except ValueError:
+    except:
         return None
 
 @app.errorhandler(429)
@@ -91,8 +91,10 @@ def on_timeout_error(error : TimeoutError):
     return create_error_response(500, f"An timeout occurred attempting to use the {error.api_name} API")
 
 def try_verify_discord_user(discord_id : int):
-    if manager.get_roblox_from_discord(discord_id) is not None:
-        return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED)
+    roblox_id = manager.get_roblox_from_discord(discord_id)
+    if roblox_id is not None:
+        return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED, { "robloxId": roblox_id } )
+    
     phrase = manager.get_user_phrase(discord_id)
     if phrase:
         success, user = manager.verify_user(discord_id)
@@ -118,8 +120,9 @@ def begin_verify_discord_user(discord_id : int, roblox_id : int):
     if not roblox_id or roblox_id < 1:
         return create_error_response(400, "The provided robloxId is invalid.")
 
-    if manager.get_roblox_from_discord(discord_id) is not None:
-        return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED)
+    roblox_id = manager.get_roblox_from_discord(discord_id)
+    if roblox_id is not None:
+        return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED, { "robloxId": roblox_id } )
     
     try:
         user = manager.get_user_from_roblox(roblox_id)
