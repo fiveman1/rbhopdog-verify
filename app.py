@@ -62,9 +62,9 @@ def require_api_key():
     def wrapper(func):
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            api_key = request.headers.get("api_key")
+            api_key = request.headers.get("api-key")
             if not api_key:
-                return create_error_response(403, "An API key is required for this resource. It should be included in the headers as 'api_key'.")
+                return create_error_response(403, "An API key is required for this resource. It should be included in the headers as 'api-key'.")
             elif not manager.validate_api_key(api_key):
                 return create_error_response(403, "The provided API key is not valid for accessing this resource.")
             else:
@@ -167,7 +167,7 @@ def discord_user(discord_id : int):
 
 @app.route("/v1/keys/<int:discord_id>", methods=["GET", "DELETE"])
 def manage_api_keys(discord_id : int):
-    api_key = request.headers.get("api_key")
+    api_key = request.headers.get("api-key")
     if api_key != OWNER_KEY:
         return create_error_response(403, "The provided API key is not valid for accessing this resource.")
     
