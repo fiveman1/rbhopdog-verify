@@ -92,7 +92,7 @@ def on_timeout_error(error : TimeoutError):
 
 def try_verify_discord_user(discord_id : int):
     if manager.get_roblox_from_discord(discord_id) is not None:
-        return create_error_response(400, ["User is already verified."], ErrorCode.ALREADY_VERIFIED)
+        return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED)
     phrase = manager.get_user_phrase(discord_id)
     if phrase:
         success, user = manager.verify_user(discord_id)
@@ -104,14 +104,14 @@ def try_verify_discord_user(discord_id : int):
         else:
             result = { 
                 "phrase": phrase.phrase,
-                "expiresIn": int(phrase.time_to_expire()),
-                "description": user.description, 
+                "expiresIn": phrase.time_to_expire,
+                "robloxDescription": user.description, 
                 "robloxId": user.id,
                 "robloxUsername": user.username
             }
             return create_error_response(400, "User could not be verified. The verification phrase was not found in their About section.", ErrorCode.PHRASE_NOT_FOUND, result)
     else:
-        return create_error_response(400, "The verification process is not active for this user. Either they did not start it, or their phrase expired.", ErrorCode.VERIFICATION_NOT_ACTIVE)
+        return create_error_response(404, "The verification process is not active for this user. Either they did not start it, or their phrase expired.", ErrorCode.VERIFICATION_NOT_ACTIVE)
 
 def begin_verify_discord_user(discord_id : int, roblox_id : int):
     roblox_id = validate_int(roblox_id)
@@ -127,25 +127,10 @@ def begin_verify_discord_user(discord_id : int, roblox_id : int):
         return create_error_response(404, "User not found.")
     phrase = manager.create_user_phrase(discord_id, user)
     if phrase:
-        return create_ok_response( { "phrase": phrase.phrase, "expiresIn": int(phrase.time_to_expire()) } )
+        return create_ok_response( { "phrase": phrase.phrase, "expiresIn": phrase.time_to_expire } )
     else:
         return create_error_response(500, "An unexpected error occurred.")
 
-def get_discord_user(discord_id : int):
-    roblox_id = manager.get_roblox_from_discord(discord_id)
-    if roblox_id:
-        return create_ok_response( { "robloxId": roblox_id } )
-    else:
-        return create_error_response(404, "User not found.")
-
-@require_api_key()
-def verify_discord_user(discord_id : int, roblox_id : int):
-    if roblox_id is None:
-        return try_verify_discord_user(discord_id)
-    else:
-        return begin_verify_discord_user(discord_id, roblox_id)
-
-@require_api_key()
 def remove_discord_user(discord_id : int):
     roblox_id = manager.get_roblox_from_discord(discord_id)
     if not roblox_id:
@@ -157,16 +142,25 @@ def remove_discord_user(discord_id : int):
     else:
         return create_error_response(500, "An unexpected error occurred.")
 
-@app.route("/v1/users/<int:discord_id>", methods=["GET", "POST", "DELETE"])
-@limiter.limit("3000/day;300/hour", exempt_when=lambda : request.method != "GET")
-def discord_user(discord_id : int):
+@app.route("/v1/verify/users/<int:discord_id>", methods=["GET", "POST", "DELETE"])
+@require_api_key()
+def verify_discord_user(discord_id : int):
     if request.method == "GET":
-        return get_discord_user(discord_id)
-    elif request.method == "POST":
         roblox_id = request.args.get("robloxId")
-        return verify_discord_user(discord_id, roblox_id)
+        return begin_verify_discord_user(discord_id, roblox_id)
+    elif request.method == "POST":
+        return try_verify_discord_user(discord_id)
     elif request.method == "DELETE":
         return remove_discord_user(discord_id)
+
+@app.route("/v1/users/<int:discord_id>", methods=["GET"])
+@limiter.limit("3000/day;300/hour")
+def discord_user(discord_id : int):
+    roblox_id = manager.get_roblox_from_discord(discord_id)
+    if roblox_id:
+        return create_ok_response( { "robloxId": roblox_id } )
+    else:
+        return create_error_response(404, "User not found.")
 
 @app.route("/v1/keys/<int:discord_id>", methods=["GET", "DELETE"])
 def manage_api_keys(discord_id : int):
@@ -186,3 +180,7 @@ def manage_api_keys(discord_id : int):
             return create_ok_response()
         else:
             return create_error_response(404, "No keys found to delete.")
+
+@app.route("/")
+def show_docs():
+    return app.send_static_file("redoc-static.html")

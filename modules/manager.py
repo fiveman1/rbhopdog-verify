@@ -33,13 +33,14 @@ class ExpiringPhrase:
         self.created = created
 
     def is_expired(self) -> bool:
-        return self.time_to_expire() >= ExpiringPhrase.SECONDS_TO_EXPIRE
+        return self.time_to_expire >= ExpiringPhrase.SECONDS_TO_EXPIRE
 
     def __bool__(self) -> bool:
         return not self.is_expired()
 
+    @property
     def time_to_expire(self) -> int:
-        return (datetime.now() - self.created).total_seconds()
+        return int((datetime.now() - self.created).total_seconds())
 
     @staticmethod
     def from_row(row) -> "ExpiringPhrase":
