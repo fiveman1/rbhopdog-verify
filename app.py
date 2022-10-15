@@ -120,8 +120,7 @@ def begin_verify_discord_user(discord_id : int, roblox_id : int):
     if not roblox_id or roblox_id < 1:
         return create_error_response(400, "The provided robloxId is invalid.")
 
-    roblox_id = manager.get_roblox_from_discord(discord_id)
-    if roblox_id is not None:
+    if manager.get_roblox_from_discord(discord_id) is not None:
         return create_error_response(400, "User is already verified.", ErrorCode.ALREADY_VERIFIED, { "robloxId": roblox_id } )
     
     try:
