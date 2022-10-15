@@ -1,0 +1,328 @@
+openapi: 3.1.0
+info:
+  title: rbhopdog verify
+  version: '1.0'
+  description:
+    $ref: description.md
+servers:
+  - url: 'https://api.fiveman1.net'
+paths:
+  '/v1/users/{discordId}':
+    parameters:
+      - schema:
+          type: integer
+          example: 161981786354745340
+          format: int64
+        name: discordId
+        in: path
+        required: true
+        description: A discord user's ID (snowflake)
+    get:
+      summary: Get Roblox User From Discord
+      tags: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Get-User'
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
+      operationId: get-users-userId
+      description: Retrieve a verified user's Roblox ID from their Discord ID. This endpoint has a rate limit of up to 300 per hour, and up to 3000 per day.
+      parameters: []
+  '/v1/verify/users/{discordId}':
+    parameters:
+      - schema:
+          type: integer
+          format: int64
+        name: discordId
+        in: path
+        required: true
+        description: A discord user's ID (snowflake)
+    get:
+      summary: Begin Verification For A User
+      operationId: post-v1-verify-users-discordId
+      responses:
+        '200':
+          $ref: '#/components/responses/Begin-Verify-User'
+        '400':
+          description: The provided robloxId is invalid OR User is already verified (errorCode = 2)
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
+      security:
+        - api_key: []
+      description: |-
+        Begin the verification process for a user. Creates a unique phrase that users put into their About section on Roblox. POST
+        /v1/verify/users/{discordId} can be used to verify that they have the phrase. Can give error code 2.
+    post:
+      summary: Try To Verify A User
+      tags: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Try-Verify-User'
+        '400':
+          description: User is already verified (errorCode = 2) OR User could not be verified (errorCode = 3)
+        '404':
+          description: The verification process is not active for this user (errorCode = 4)
+        '500':
+          description: Internal Server Error
+      operationId: get-v1-verify-users-discordId
+      security:
+        - api_key: []
+      description: |-
+        Try to verify a user. The user must have had verification started via GET /v1/verify/users/{discordId}. This will check if their description contains the phrase needed for verification, and register them if so.
+        Can give error codes 2-4.
+    delete:
+      summary: Remove A Verified User
+      operationId: delete-v1-verify-users-discordId
+      responses:
+        '200':
+          $ref: '#/components/responses/Remove-Verified-User'
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
+      security:
+        - api_key: []
+      description: ''
+components:
+  schemas: {}
+  securitySchemes:
+    api_key:
+      name: api_key
+      type: api_key
+      in: header
+      description: 'All endpoints other than GET /v1/users/{discordId} require an API key.'
+  responses:
+    Get-User:
+      description: Check if a Discord user is verified
+      content:
+        application/json:
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                code: 200
+                errorCode: 0
+                messages: []
+                result:
+                  robloxId: 20005988
+                status: ok
+            properties:
+              code:
+                type: integer
+                example: 200
+                description: The status code
+              errorCode:
+                type: integer
+                description: A custom error code
+                example: 0
+              messages:
+                type: array
+                description: 'If there was an error, at least one message describing what went wrong'
+                items:
+                  type: string
+              result:
+                type: object
+                description: The result of the request
+                properties:
+                  robloxId:
+                    type: integer
+                    example: 20005988
+                    description: The Roblox user's ID (included if success)
+                    format: int32
+              status:
+                type: string
+                description: '"ok" or "error"'
+                example: ok
+            required:
+              - code
+              - errorCode
+              - messages
+              - result
+              - status
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: The rate limit ceiling that is applicable for the current request
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: The number of requests remaining in the window before encountering a 429 error
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: 'A timestamp of the current window, specified as seconds-since-epoch'
+        Retry-After:
+          schema:
+            type: integer
+          description: How long to wait before making a follow up request
+    Try-Verify-User:
+      description: Try to verify a user
+      content:
+        application/json:
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                code: 200
+                errorCode: 0
+                messages: []
+                result:
+                  robloxId: 20005988
+                status: ok
+            properties:
+              code:
+                type: integer
+                example: 200
+                description: The status code
+              errorCode:
+                type: integer
+                description: A custom error code
+                example: 0
+              messages:
+                type: array
+                description: 'If there was an error, at least one message describing what went wrong'
+                items:
+                  type: string
+              result:
+                type: object
+                description: The result of the request
+                properties:
+                  phrase:
+                    type: string
+                    description: The phrase used for verification (included if errorCode = 3)
+                    example: taxi habit capable skate bounce hire patrol daring zebra teach glass because remove victory garment paddle gift extra develop effort
+                  expiresIn:
+                    type: integer
+                    description: In how many seconds the phrase will expire (included if errorCode = 3)
+                    example: 900
+                  robloxDescription:
+                    type: string
+                    description: The user's About section/description (included if errorCode = 3)
+                    example: Hello! This is my About me.
+                  robloxId:
+                    type: integer
+                    description: The user's ID (included if success or errorCode = 3)
+                    format: int32
+                    example: 20005988
+                  robloxUsername:
+                    type: string
+                    description: The user's username (included if success or errorCode = 3)
+                    example: fiveman1
+              status:
+                type: string
+                description: '"ok" or "error"'
+                example: ok
+            required:
+              - code
+              - errorCode
+              - messages
+              - result
+              - status
+      headers: {}
+    Begin-Verify-User:
+      description: Begin verifying a user
+      content:
+        application/json:
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                code: 200
+                errorCode: 0
+                messages: []
+                result:
+                  robloxId: 20005988
+                status: ok
+            properties:
+              code:
+                type: integer
+                example: 200
+                description: The status code
+              errorCode:
+                type: integer
+                description: A custom error code
+                example: 0
+              messages:
+                type: array
+                description: 'If there was an error, at least one message describing what went wrong'
+                items:
+                  type: string
+              result:
+                type: object
+                description: The result of the request
+                properties:
+                  phrase:
+                    type: string
+                    description: The phrase used for verification
+                    example: taxi habit capable skate bounce hire patrol daring zebra teach glass because remove victory garment paddle gift extra develop effort
+                  expiresIn:
+                    type: integer
+                    description: In how many seconds the phrase will expire
+                    example: 900
+              status:
+                type: string
+                description: '"ok" or "error"'
+                example: ok
+            required:
+              - code
+              - errorCode
+              - messages
+              - result
+              - status
+    Remove-Verified-User:
+      description: Remove a user from the verification database
+      content:
+        application/json:
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                code: 200
+                errorCode: 0
+                messages: []
+                result:
+                  robloxId: 20005988
+                status: ok
+            properties:
+              code:
+                type: integer
+                example: 200
+                description: The status code
+              errorCode:
+                type: integer
+                description: A custom error code
+                example: 0
+              messages:
+                type: array
+                description: 'If there was an error, at least one message describing what went wrong'
+                items:
+                  type: string
+              result:
+                type: object
+                description: The result of the request
+                properties:
+                  robloxId:
+                    type: integer
+                    description: The user's ID
+                    format: int32
+                    example: 20005988
+                  robloxUsername:
+                    type: string
+                    description: The user's username
+                    example: fiveman1
+              status:
+                type: string
+                description: '"ok" or "error"'
+                example: ok
+            required:
+              - code
+              - errorCode
+              - messages
+              - result
+              - status
+  requestBodies: {}
