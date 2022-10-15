@@ -1,3 +1,5 @@
 # rbhopdog-verify
 
-API documentation here
+### Documentation
+
+https://api.fiveman1.net/
