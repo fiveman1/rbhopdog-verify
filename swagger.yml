@@ -59,7 +59,7 @@ paths:
       parameters:
         - schema:
             type: integer
-            format: int32
+            format: int64
           in: query
           name: robloxId
           description: The roblox ID that the user wants to authenticate
@@ -140,7 +140,7 @@ components:
                     type: integer
                     example: 20005988
                     description: The Roblox user's ID (included if success)
-                    format: int32
+                    format: int64
               status:
                 type: string
                 description: '"ok" or "error"'
@@ -215,7 +215,7 @@ components:
                   robloxId:
                     type: integer
                     description: The user's ID (included if success or errorCode = 3)
-                    format: int32
+                    format: int64
                     example: 20005988
                   robloxUsername:
                     type: string
@@ -317,7 +317,7 @@ components:
                   robloxId:
                     type: integer
                     description: The user's ID
-                    format: int32
+                    format: int64
                     example: 20005988
                   robloxUsername:
                     type: string
