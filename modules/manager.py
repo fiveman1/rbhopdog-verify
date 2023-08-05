@@ -6,7 +6,7 @@ from mysql.connector.cursor import MySQLCursorBuffered
 import requests
 import random
 import secrets
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from modules.exceptions import TimeoutError, NotFoundError, APIError
 
@@ -160,6 +160,18 @@ class AccountManager:
                 return row[0]
             else:
                 return None
+        return self.connect_and_execute(callback)
+    
+    def get_discord_from_roblox(self, roblox_id : int) -> List[int]:
+        if type(roblox_id) != int:
+            return []
+        def callback(cur : MySQLCursorBuffered):
+            query = "select discord_id from discord_lookup where roblox_id=%s"
+            cur.execute(query, (roblox_id, ))
+            if cur.rowcount > 0:
+                return [row[0] for row in cur.fetchall()]
+            else:
+                return []
         return self.connect_and_execute(callback)
 
     def generate_and_add_api_key(self, discord_id : int) -> Optional[str]:

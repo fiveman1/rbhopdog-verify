@@ -163,6 +163,15 @@ def discord_user(discord_id : int):
         return create_ok_response( { "robloxId": roblox_id } )
     else:
         return create_error_response(404, "User not found.")
+    
+@app.route("/v1/users/from_roblox/<int:roblox_id>", methods=["GET"])
+@require_api_key()
+def roblox_user(roblox_id : int):
+    discord_ids = manager.get_discord_from_roblox(roblox_id)
+    if discord_ids:
+        return create_ok_response( { "discordIds": discord_ids } )
+    else:
+        return create_error_response(404, "User not found.")
 
 @app.route("/v1/keys/<int:discord_id>", methods=["GET", "DELETE"])
 def manage_api_keys(discord_id : int):
@@ -186,3 +195,6 @@ def manage_api_keys(discord_id : int):
 @app.route("/")
 def show_docs():
     return app.send_static_file("redoc-static.html")
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0')

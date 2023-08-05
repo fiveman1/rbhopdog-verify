@@ -30,6 +30,31 @@ paths:
       operationId: get-users-userId
       description: Retrieve a verified user's Roblox ID from their Discord ID. This endpoint has a rate limit of up to 300 per hour, and up to 3000 per day.
       parameters: []
+  '/v1/users/from_roblox/{robloxId}':
+    parameters:
+      - schema:
+          type: integer
+          example: 20005988
+          format: int64
+        name: robloxId
+        in: path
+        required: true
+        description: A roblox user's ID
+    get:
+      summary: Get Discord Users From Roblox
+      tags: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Get-Roblox-User'
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
+      security:
+        - api-key: []
+      operationId: get-v1-users-from_roblox-robloxId
+      description: Retrieve a list of Roblox user IDs that are linked to the given Discord user ID.
+      parameters: []
   '/v1/verify/users/{discordId}':
     parameters:
       - schema:
@@ -168,6 +193,54 @@ components:
           schema:
             type: integer
           description: How long to wait before making a follow up request
+    Get-Roblox-User:
+      description: Get the Roblox users associated with a Discord user
+      content:
+        application/json:
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                code: 200
+                errorCode: 0
+                messages: []
+                result:
+                  discordIds: [161981786354745345]
+                status: ok
+            properties:
+              code:
+                type: integer
+                example: 200
+                description: The status code
+              errorCode:
+                type: integer
+                description: A custom error code
+                example: 0
+              messages:
+                type: array
+                description: 'If there was an error, at least one message describing what went wrong'
+                items:
+                  type: string
+              result:
+                type: object
+                description: The result of the request
+                properties:
+                  discordIds:
+                    type: integer
+                    example: [161981786354745345]
+                    description: The Discord user IDs (can be multiple, included if success)
+                    format: int64
+              status:
+                type: string
+                description: '"ok" or "error"'
+                example: ok
+            required:
+              - code
+              - errorCode
+              - messages
+              - result
+              - status
+      headers: {}
     Try-Verify-User:
       description: Try to verify a user
       content:
