@@ -53,7 +53,7 @@ paths:
       security:
         - api-key: []
       operationId: get-v1-users-from_roblox-robloxId
-      description: Retrieve a list of Roblox user IDs that are linked to the given Discord user ID.
+      description: Retrieve a list of Discord user IDs that are linked to the given Roblox user ID.
       parameters: []
   '/v1/verify/users/{discordId}':
     parameters:
