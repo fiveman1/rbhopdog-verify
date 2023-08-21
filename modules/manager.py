@@ -6,9 +6,11 @@ from mysql.connector.cursor import MySQLCursorBuffered
 import requests
 import random
 import secrets
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, TypeVar
 
 from modules.exceptions import TimeoutError, NotFoundError, APIError
+
+T = TypeVar('T') 
 
 class User:
     def __init__(self, id : int, username : str, description: str):
@@ -70,7 +72,7 @@ class AccountManager:
         res = self.get_request(f"https://users.roblox.com/v1/users/{user_id}", "Roblox Users")
         return User.from_dict(res.json())
 
-    def connect_and_execute(self, callback : Callable[[MySQLCursorBuffered], Any]) -> Any:
+    def connect_and_execute(self, callback : Callable[[MySQLCursorBuffered], T]) -> T:
         with mysql.connect(
             host="127.0.0.1",
             user=self.user,
