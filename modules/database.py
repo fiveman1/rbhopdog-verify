@@ -19,7 +19,8 @@ def create_tables(user, password):
     create_lookup = """
         create table discord_lookup (
             discord_id bigint unsigned not null,
-            roblox_id int unsigned not null,
+            roblox_id bigint unsigned not null,
+            index roblox_id_idx (roblox_id),
             primary key (discord_id)
         )
         """
@@ -35,7 +36,7 @@ def create_tables(user, password):
     create_phrases = """
         create table active_phrases (
             discord_id bigint unsigned not null,
-            roblox_id int not null,
+            roblox_id bigint unsigned not null,
             phrase varchar(256) not null,
             created timestamp default current_timestamp on update current_timestamp not null,
             primary key (discord_id)
